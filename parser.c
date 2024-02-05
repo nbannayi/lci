@@ -924,6 +924,26 @@ ReturnStmtNode *createReturnStmtNode(ExprNode *value)
 }
 
 /**
+ * Creates a length statement.
+ *
+ * \param [in] value The string to find length of.
+ *
+ * \return A pointer to a return statement of the desired properties.
+ *
+ * \retval NULL Memory allocation failed.
+ */
+LengthStmtNode *createLengthStmtNode(ExprNode *value)
+{
+	LengthStmtNode *p = malloc(sizeof(LengthStmtNode));
+	if (!p) {
+		perror("malloc");
+		return NULL;
+	}
+	p->string = value;
+	return p;
+}
+
+/**
  * Deletes a return statement.
  *
  * \param [in,out] node The return statement to delete.
@@ -934,6 +954,20 @@ void deleteReturnStmtNode(ReturnStmtNode *node)
 {
 	if (!node) return;
 	deleteExprNode(node->value);
+	free(node);
+}
+
+/**
+ * Deletes a length statement.
+ *
+ * \param [in,out] node The length statement to delete.
+ *
+ * \post The memory at \a node and all of its members will be freed.
+ */
+void deleteLengthStmtNode(LengthStmtNode *node)
+{
+	if (!node) return;
+	deleteExprNode(node->string);
 	free(node);
 }
 
@@ -3370,6 +3404,63 @@ parseBreakStmtNodeAbort: /* Exception handling */
 }
 
 /**
+ * Parses tokens into a length statement.
+ *
+ * \param [in] tokenp The position in a token list to start parsing at.
+ *
+ * \post \a tokenp will point to the next unparsed token.
+ *
+ * \return A pointer to a length statement.
+ *
+ * \retval NULL Unable to parse.
+ */
+StmtNode *parseLengthStmtNode(Token ***tokenp)
+{
+	StmtNode *ret = NULL;
+	ExprNode *value = NULL;	
+	StmtNode *stmt = NULL;
+	int status;
+
+	/* Work from a copy of the token stream in case something goes wrong */
+	Token **tokens = *tokenp;
+
+	/* Remove the length keyword from the token stream */
+	status = acceptToken(&tokens, TT_HASYRLEN);
+	if (!status) {
+		parser_error_expected_token(TT_HASYRLEN, tokens);
+		goto parseLengthStmtNodeAbort;
+	}
+	
+	/* Parse string to find length of */
+	value = parseExprNode(&tokens);
+	if (!value) goto parseLengthStmtNodeAbort;
+
+	/* Create the new LengthStmtNode structure */
+	stmt = createLengthStmtNode(value);
+	if (!stmt) goto parseLengthStmtNodeAbort;
+
+	/* Create the new StmtNode structure */
+	ret = createStmtNode(ST_STRLEN, stmt);
+	if (!ret) goto parseLengthStmtNodeAbort;
+
+	/* Since we're successful, update the token stream */
+	*tokenp = tokens;
+
+	return ret;
+		
+parseLengthStmtNodeAbort: /* Exception handling */
+
+	/* Clean up any allocated structures */
+	if (ret) deleteStmtNode(ret);
+	else if (stmt) deleteLengthStmtNode(stmt);
+	else {
+		if (value) deleteExprNode(value);		
+	}
+
+	return NULL;
+}
+
+/**
  * Parses tokens into a return statement.
  *
  * \param [in] tokenp The position in a token list to start parsing at.
@@ -4273,6 +4364,10 @@ StmtNode *parseStmtNode(Token ***tokenp)
 	/* Library import statement */
 	else if (peekToken(&tokens, TT_CANHAS)) {
 		ret = parseImportStmtNode(tokenp);
+	}
+	/* Length (of a string) */
+	else if (peekToken(&tokens, TT_HASYRLEN)) {
+		ret = parseLengthStmtNode(tokenp);
 	}
 	/* Bare expression */
 	else if ((expr = parseExprNode(&tokens))) {

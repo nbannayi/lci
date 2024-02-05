@@ -6,3 +6,10 @@ install_manifest.txt
 CTestTestfile.cmake
 tags
 build/
+.vscode/
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+Testing/
+html/
+latex/
+lci

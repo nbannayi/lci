@@ -235,6 +235,8 @@ typedef enum {
 	ST_ALTARRAYDEF,     /**< Function definition statement. */
 	ST_BINDING,         /**< Binding to external library. */
 	ST_IMPORT,          /**< Library import statement. */
+	ST_STRSUBSTR,		/**< String substring statement. */
+	ST_STRLEN			/**< String substring statement. */
 } StmtType;
 
 /**
@@ -488,6 +490,14 @@ typedef struct {
 typedef struct {
 	ExprNode *value; /**< The value to return. */
 } ReturnStmtNode;
+
+/**
+ * Stores a length statement.  This statement specifies that the length of the passed string 
+ * should be determined.
+ */
+typedef struct {
+	ExprNode *string; /**< The string to get length of. */
+} LengthStmtNode;
 
 /**
  * Stores a loop statement.  This statement repeatedly executes its \a body
